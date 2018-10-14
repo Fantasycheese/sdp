@@ -26,63 +26,55 @@ android {
     }
 }
 
-public class SDPFactory extends DefaultTask {
+class ScalePixelFactory extends DefaultTask {
 
-    @Input
-    String unit = "dp"
-    @Input
-    double positiveMax = 600
-    @Input
-    double negativeMax = 60
+    @Input double dpMax
+    @Input double dpMin
+    @Input double spMax
+    @Input double spMin
 
     @TaskAction
     def create() {
         String resFolder =  project.getProjectDir().getPath() + "/src/main/res/";
-        for(double dimen = 300; dimen <= 800 ; dimen = dimen + 30){
-            String folder = resFolder + "values-sw" + (int)dimen + "dp";
-            String fileName = folder + "/positive_sdps.xml";
+        for(int dimen = 300; dimen <= 800 ; dimen = dimen + 5){
+            String folder = resFolder + (dimen == 300 ? "values" : ("values-sw" + (int)dimen + "dp"));
+            String fileName = folder + "/_scale_pixels.xml";
             new File(folder).mkdir();
             new File(fileName).createNewFile();
             PrintWriter printWriter = new PrintWriter(fileName);
             printWriter.println("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             printWriter.println("<resources>");
-            for(int i=1; i<=positiveMax; i++){
-                double ratio = i/300d;
-                double sdp = ratio*dimen;
-                printWriter.printf("\t<dimen name=\"_%dsdp\">%.2f" + unit + "</dimen>\r\n",i,sdp);
-            }
-            printWriter.println("</resources>");
-            printWriter.close();
-        }
-        for(double dimen = 300; dimen <= 800; dimen = dimen + 30){
-            String folder = resFolder + "values-sw" + (int)dimen + "dp";
-            String fileName = folder + "/negative_sdps.xml";
-            new File(folder).mkdir();
-            new File(fileName).createNewFile();
-            PrintWriter printWriter = new PrintWriter(fileName);
-            printWriter.println("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-            printWriter.println("<resources>");
-            for(int i=1;i<=negativeMax;i++){
-                double ratio = i/300d;
-                double sdp = ratio*dimen;
-                printWriter.printf("\t<dimen name=\"_minus%dsdp\">%.2f" + unit + "</dimen>\r\n",i,-sdp);
-            }
+
+            for(int i = dpMin; i<= dpMax; ++i)
+                writeLine(printWriter, i, dimen, "dp");
+
+            for(int i = spMin; i<= spMax; ++i)
+                writeLine(printWriter, i, dimen, "sp");
+
             printWriter.println("</resources>");
             printWriter.close();
         }
     }
+
+    private static void writeLine(PrintWriter printWriter, int i, int dimen, String unit) {
+        double ratio = i/1080d;
+        double value = ratio*dimen;
+        String name = String.format("_%ss%s", (i >= 0 ? "":"minus_")+Math.abs(i).toString(), unit);
+        printWriter.printf("\t<dimen name=\"%s\">%.2f%s</dimen>\r\n", name, value, unit);
+    }
 }
 
-task createSDP(type: SDPFactory) {
+task createScalePixel(type: ScalePixelFactory) {
 }
 
 //uncomment next line to edit values
-//preBuild.dependsOn createSDP
+preBuild.dependsOn createScalePixel
 
-createSDP{
-    unit = "dp"//change to "sp" if needed
-    positiveMax = 600//change to 600 or any other value if needed
-    negativeMax = 60//change to 600 or any other value if needed
+createScalePixel {
+    dpMax = 1920
+    dpMin = -60
+    spMax = 200
+    spMin = 0
 }
 
 signing {
